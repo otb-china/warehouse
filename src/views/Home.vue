@@ -528,11 +528,26 @@ onUnmounted(() => {
   position: sticky;
   top: 92px;
   z-index: 12;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   padding: 14px 4px 16px;
-  background: transparent;
+}
+
+.search-section::before {
+  content: "";
+  position: absolute;
+  inset: 0 -12px;
+  z-index: -1;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--page-bg) 94%, #ffffff) 0%,
+      color-mix(in srgb, var(--page-bg) 90%, #ffffff) 72%,
+      color-mix(in srgb, var(--page-bg) 0%, transparent) 100%
+    );
+  backdrop-filter: blur(14px);
 }
 
 .search-box {
@@ -545,7 +560,7 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.82);
   border-radius: 18px;
   color: var(--accent);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  background: color-mix(in srgb, var(--surface) 96%, #ffffff);
   box-shadow: var(--shadow);
 }
 
@@ -880,6 +895,10 @@ onUnmounted(() => {
     grid-template-columns: minmax(0, 1fr) 86px;
     gap: 8px;
     padding-inline: 0;
+  }
+
+  .search-section::before {
+    inset-inline: -10px;
   }
 
   .create-button {
