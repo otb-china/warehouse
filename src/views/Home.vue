@@ -1,21 +1,21 @@
 <template>
   <div class="home-page" :style="themeStyle">
-    <header ref="headerSection" class="page-header">
-      <div>
-        <p class="hero-tag">Warehouse</p>
-        <h1>库房</h1>
-      </div>
-      <div class="header-actions">
-        <button v-if="showScrollTop" class="header-icon" type="button" @click="scrollToTop">
-          <el-icon><Top /></el-icon>
-        </button>
-        <button class="header-icon" type="button" @click="settingsPopup = true">
-          <el-icon><Setting /></el-icon>
-        </button>
-      </div>
-    </header>
+    <div class="sticky-panel">
+      <header class="page-header">
+        <div>
+          <p class="hero-tag">Warehouse</p>
+          <h1>库房</h1>
+        </div>
+        <div class="header-actions">
+          <button v-if="showScrollTop" class="header-icon" type="button" @click="scrollToTop">
+            <el-icon><Top /></el-icon>
+          </button>
+          <button class="header-icon" type="button" @click="settingsPopup = true">
+            <el-icon><Setting /></el-icon>
+          </button>
+        </div>
+      </header>
 
-    <main class="warehouse-view">
       <section class="search-section" aria-label="搜索和新增">
         <label class="search-box">
           <el-icon><Search /></el-icon>
@@ -26,7 +26,9 @@
           新增
         </button>
       </section>
+    </div>
 
+    <main class="warehouse-view">
       <section v-if="filteredItems.length" class="waterfall-list" aria-label="库房物品列表">
         <article
           v-for="(item, index) in filteredItems"
@@ -171,7 +173,6 @@ const RECYCLE_KEEP_MS = RECYCLE_KEEP_DAYS * 24 * 60 * 60 * 1000;
 const units = ["个", "只", "支", "根", "袋", "瓶", "条", "米", "张", "箱", "盒", "包", "件", "卷", "套"] as const;
 type Unit = typeof units[number];
 
-const headerSection = ref<HTMLElement | null>(null);
 const showScrollTop = ref(false);
 const currentTheme = ref<ThemeKey>(DEFAULT_THEME);
 const items = ref<WarehouseItem[]>([]);
@@ -474,19 +475,30 @@ onUnmounted(() => {
   margin: 0 auto;
 }
 
-.page-header {
+.sticky-panel {
   position: sticky;
   top: 0;
   z-index: 20;
+  margin: -12px -12px 0;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 88%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 88%, transparent) 56%,
+      color-mix(in srgb, var(--page-bg) 94%, #ffffff) 57%,
+      color-mix(in srgb, var(--page-bg) 90%, #ffffff) 86%,
+      color-mix(in srgb, var(--page-bg) 0%, transparent) 100%
+    );
+  box-shadow: var(--header-shadow);
+  backdrop-filter: blur(14px);
+}
+
+.page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin: -12px -12px 0;
   padding: 18px max(18px, calc((100vw - 780px) / 2 + 18px)) 16px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  box-shadow: var(--header-shadow);
-  backdrop-filter: blur(12px);
 }
 
 .hero-tag {
@@ -525,29 +537,17 @@ onUnmounted(() => {
 }
 
 .search-section {
-  position: sticky;
-  top: 92px;
-  z-index: 12;
   isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
+  width: min(100%, 780px);
+  margin: 0 auto;
   padding: 14px 4px 16px;
 }
 
 .search-section::before {
-  content: "";
-  position: absolute;
-  inset: 0 -12px;
-  z-index: -1;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--page-bg) 94%, #ffffff) 0%,
-      color-mix(in srgb, var(--page-bg) 90%, #ffffff) 72%,
-      color-mix(in srgb, var(--page-bg) 0%, transparent) 100%
-    );
-  backdrop-filter: blur(14px);
+  content: none;
 }
 
 .search-box {
@@ -881,8 +881,11 @@ onUnmounted(() => {
     padding: 10px;
   }
 
-  .page-header {
+  .sticky-panel {
     margin: -10px -10px 0;
+  }
+
+  .page-header {
     padding: 18px 24px 16px;
   }
 
@@ -891,14 +894,9 @@ onUnmounted(() => {
   }
 
   .search-section {
-    top: 88px;
     grid-template-columns: minmax(0, 1fr) 86px;
     gap: 8px;
-    padding-inline: 0;
-  }
-
-  .search-section::before {
-    inset-inline: -10px;
+    padding-inline: 10px;
   }
 
   .create-button {
