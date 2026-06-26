@@ -1,15 +1,16 @@
-export interface ToolItem {
+export interface WarehouseItem {
   id: string;
   name: string;
-  url: string;
+  quantity: number;
+  unit: string;
   updatedAt: string;
 }
 
-export interface DeletedToolItem extends ToolItem {
+export interface DeletedWarehouseItem extends WarehouseItem {
   deletedAt: string;
 }
 
-export interface ToolsPageBackupData {
-  tools?: unknown;
-  deletedTools?: unknown;
+export interface WarehouseBackupData {
+  items?: unknown;
+  deletedItems?: unknown;
 }

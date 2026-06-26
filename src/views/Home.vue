@@ -2,8 +2,8 @@
   <div class="home-page" :style="themeStyle">
     <header ref="headerSection" class="page-header">
       <div>
-        <p class="hero-tag">Tools Page</p>
-        <h1>工具页</h1>
+        <p class="hero-tag">Warehouse</p>
+        <h1>库房</h1>
       </div>
       <div class="header-actions">
         <button v-if="showScrollTop" class="header-icon" type="button" @click="scrollToTop">
@@ -15,56 +15,80 @@
       </div>
     </header>
 
-    <main class="tools-view">
-      <section class="tool-grid" aria-label="工具列表">
-        <div
-          v-for="tool in tools"
-          :key="tool.id"
-          class="tool-cell"
-          :class="{ dragging: draggingToolId === tool.id }"
-          :data-tool-id="tool.id"
-        >
-          <a
-            class="tool-item"
-            :class="{ pressed: pressedToolId === tool.id }"
-            :href="tool.url"
-            @contextmenu.prevent
-            @pointerdown="onToolPointerDown($event, tool)"
-            @pointermove="onToolPointerMove"
-            @pointerup="onToolPointerUp"
-            @pointercancel="onToolPointerCancel"
-            @click="handleToolClick"
-          >
-            <span class="app-icon letter-icon">{{ getToolInitial(tool.name) }}</span>
-            <span class="tool-name">{{ tool.name }}</span>
-          </a>
-
-          <div v-if="actionToolId === tool.id" class="inline-action-menu">
-            <button type="button" @click="editActionTool">编辑</button>
-            <button type="button" @click="removeActionTool">移除</button>
-          </div>
-        </div>
-
-        <button class="tool-item add-item" type="button" @click="openEditor()">
-          <span class="app-icon plus-icon">
-            <el-icon><Plus /></el-icon>
-          </span>
-          <span class="tool-name">添加</span>
+    <main class="warehouse-view">
+      <section class="search-section" aria-label="搜索和新增">
+        <label class="search-box">
+          <el-icon><Search /></el-icon>
+          <input v-model.trim="keyword" type="search" placeholder="搜索库房物品" />
+        </label>
+        <button class="create-button" type="button" @click="openEditor()">
+          <el-icon><Plus /></el-icon>
+          新增
         </button>
       </section>
 
-      <div v-if="!tools.length" class="empty-state">
-        <strong>还没有工具</strong>
-        <span>点击添加创建第一个工具。</span>
+      <section v-if="filteredItems.length" class="waterfall-list" aria-label="库房物品列表">
+        <article
+          v-for="(item, index) in filteredItems"
+          :key="item.id"
+          class="warehouse-card"
+          :class="`tone-${index % 5}`"
+          @click="openEditor(item)"
+        >
+          <button class="delete-btn" type="button" aria-label="移入回收站" @click.stop="removeItem(item.id)">×</button>
+          <h2>{{ item.name }}</h2>
+          <p class="quantity-line">{{ formatQuantity(item.quantity) }}{{ item.unit }}</p>
+        </article>
+      </section>
+
+      <div v-else class="empty-state">
+        <strong>{{ keyword ? "没有匹配物品" : "还没有物品" }}</strong>
+        <span>{{ keyword ? "换个关键词试试。" : "点击新增创建第一个库房物品。" }}</span>
       </div>
     </main>
 
-    <button v-if="actionToolId" class="menu-backdrop" type="button" aria-label="关闭菜单" @click="closeActionMenu"></button>
-
     <van-popup v-model:show="editorPopup" class="edit-popup" round destroy-on-close>
-      <form class="simple-editor" @submit.prevent="saveTool">
-        <input v-model.trim="toolForm.name" class="simple-input" placeholder="名称" />
-        <input v-model.trim="toolForm.url" class="simple-input" inputmode="url" placeholder="链接" />
+      <form class="simple-editor" @submit.prevent="saveItem">
+        <div class="editor-title">
+          <strong>{{ editingItemId ? "编辑物品" : "新增物品" }}</strong>
+          <span>填写名称、数量和单位</span>
+        </div>
+
+        <label class="field-row">
+          <span>名称</span>
+          <input v-model.trim="itemForm.name" class="simple-input" placeholder="例如：矿泉水" />
+        </label>
+
+        <label class="field-row">
+          <span>数量</span>
+          <input
+            v-model.number="itemForm.quantity"
+            class="simple-input"
+            inputmode="decimal"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="例如：12"
+          />
+        </label>
+
+        <div class="field-row">
+          <span>单位</span>
+          <div class="unit-grid" role="radiogroup" aria-label="单位">
+            <button
+              v-for="unit in units"
+              :key="unit"
+              class="unit-option"
+              :class="{ active: itemForm.unit === unit }"
+              type="button"
+              role="radio"
+              :aria-checked="itemForm.unit === unit"
+              @click="itemForm.unit = unit"
+            >
+              {{ unit }}
+            </button>
+          </div>
+        </div>
 
         <div class="simple-actions">
           <button class="cancel-btn" type="button" @click="editorPopup = false">取消</button>
@@ -78,7 +102,7 @@
       :theme-options="themeOptions"
       :current-theme="currentTheme"
       :current-theme-name="currentThemeOption.name"
-      :recycle-count="deletedTools.length"
+      :recycle-count="deletedItems.length"
       @set-theme="setTheme"
       @export="exportAllData"
       @open-import="openImportExport"
@@ -91,26 +115,26 @@
         <div class="popup-head">
           <div>
             <h3>回收站</h3>
-            <p>移除的工具保留 7 天，可在这里恢复。</p>
+            <p>移除的物品保留 7 天，可在这里恢复。</p>
           </div>
         </div>
 
-        <div v-if="deletedTools.length" class="recycle-list">
-          <div v-for="tool in deletedTools" :key="tool.id" class="recycle-item">
+        <div v-if="deletedItems.length" class="recycle-list">
+          <div v-for="item in deletedItems" :key="item.id" class="recycle-item">
             <div>
-              <strong>{{ tool.name }}</strong>
-              <span>{{ tool.url }} · {{ getRecycleDaysLeft(tool) }} 天后清除</span>
+              <strong>{{ item.name }}</strong>
+              <span>{{ formatQuantity(item.quantity) }}{{ item.unit }} · {{ getRecycleDaysLeft(item) }} 天后清除</span>
             </div>
             <div class="recycle-actions">
-              <button type="button" @click="restoreDeletedTool(tool.id)">恢复</button>
-              <button class="danger" type="button" @click="purgeDeletedTool(tool.id)">删除</button>
+              <button type="button" @click="restoreDeletedItem(item.id)">恢复</button>
+              <button class="danger" type="button" @click="purgeDeletedItem(item.id)">删除</button>
             </div>
           </div>
         </div>
 
         <div v-else class="empty-state compact">
           <strong>回收站为空</strong>
-          <span>移除的工具会在这里保留一周。</span>
+          <span>移除的物品会在这里保留一周。</span>
         </div>
       </div>
     </van-popup>
@@ -132,42 +156,36 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import dayjs from "dayjs";
 import { showConfirmDialog, showToast } from "vant";
-import { Plus, Setting, Top } from "@element-plus/icons-vue";
+import { Plus, Search, Setting, Top } from "@element-plus/icons-vue";
 import ImportDataPopup from "@/components/ImportDataPopup.vue";
 import SettingsPopup from "@/components/SettingsPopup.vue";
 import { DEFAULT_THEME, isThemeKey, themeOptions } from "@/config/themes";
 import { LStorage } from "@/utils/localStorage.ts";
 import type { ThemeKey } from "@/config/themes";
-import type { DeletedToolItem, ToolItem, ToolsPageBackupData } from "@/types/tool";
+import type { DeletedWarehouseItem, WarehouseBackupData, WarehouseItem } from "@/types/tool";
 
-const LONG_PRESS_MS = 520;
 const SCROLL_TOP_THRESHOLD = 240;
 const DATE_FORMAT = "YYYY-MM-DD";
 const RECYCLE_KEEP_DAYS = 7;
 const RECYCLE_KEEP_MS = RECYCLE_KEEP_DAYS * 24 * 60 * 60 * 1000;
-
-const defaultTools: ToolItem[] = [];
+const units = ["个", "只", "支", "根", "袋", "瓶", "条", "米", "张", "箱", "盒", "包", "件", "卷", "套"] as const;
+type Unit = typeof units[number];
 
 const headerSection = ref<HTMLElement | null>(null);
 const showScrollTop = ref(false);
 const currentTheme = ref<ThemeKey>(DEFAULT_THEME);
-const tools = ref<ToolItem[]>([]);
-const deletedTools = ref<DeletedToolItem[]>([]);
+const items = ref<WarehouseItem[]>([]);
+const deletedItems = ref<DeletedWarehouseItem[]>([]);
+const keyword = ref("");
 const settingsPopup = ref(false);
 const recyclePopup = ref(false);
 const editorPopup = ref(false);
-const editingToolId = ref("");
-const actionToolId = ref("");
-const pressedToolId = ref("");
-const draggingToolId = ref("");
-const suppressNextClick = ref(false);
-const longPressTimer = ref<number | undefined>();
-const dragState = reactive({ id: "", startX: 0, startY: 0, active: false });
-const toolForm = reactive({ name: "", url: "" });
+const editingItemId = ref("");
+const itemForm = reactive({ name: "", quantity: 1, unit: "个" as Unit });
 const importExportInfo = ref({ show: false });
 const importInfo = ref({ dataStr: "", fileName: "" });
 
-const toolStorage = LStorage.new("warehouseData");
+const itemStorage = LStorage.new("warehouseItems");
 const recycleStorage = LStorage.new("warehouseRecycleBin");
 const themeStorage = LStorage.new("warehouseTheme");
 
@@ -175,25 +193,30 @@ const currentThemeOption = computed(() => {
   return themeOptions.find((theme) => theme.key === currentTheme.value) || themeOptions[0];
 });
 const themeStyle = computed(() => currentThemeOption.value.variables);
-const actionTool = computed(() => tools.value.find((tool) => tool.id === actionToolId.value));
-const importExportSummary = computed(() => `导入后将覆盖 ${tools.value.length} 个工具`);
-const hasImportOverwriteData = computed(() => tools.value.length > 0);
+const filteredItems = computed(() => {
+  const query = keyword.value.trim().toLowerCase();
+  if (!query) return items.value;
+  return items.value.filter((item) => item.name.toLowerCase().includes(query));
+});
+const importExportSummary = computed(() => `导入后将覆盖 ${items.value.length} 个物品`);
+const hasImportOverwriteData = computed(() => items.value.length > 0);
 
-watch(tools, saveTools, { deep: true });
-watch(deletedTools, saveDeletedTools, { deep: true });
+watch(items, saveItems, { deep: true });
+watch(deletedItems, saveDeletedItems, { deep: true });
 
 function init() {
   const storedTheme = themeStorage.getter();
   currentTheme.value = isThemeKey(storedTheme) ? storedTheme : DEFAULT_THEME;
-  tools.value = normalizeTools(toolStorage.getter());
-  deletedTools.value = purgeExpiredDeletedTools(normalizeDeletedTools(recycleStorage.getter()));
+  items.value = normalizeItems(itemStorage.getter());
+  deletedItems.value = purgeExpiredDeletedItems(normalizeDeletedItems(recycleStorage.getter()));
 }
 
-function createTool(name: string, url: string): ToolItem {
+function createItem(name: string, quantity: number, unit: string): WarehouseItem {
   return {
-    id: createId("tool"),
+    id: createId("item"),
     name,
-    url,
+    quantity,
+    unit,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -203,40 +226,50 @@ function createId(prefix = "id") {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function normalizeTools(value: unknown): ToolItem[] {
-  if (!Array.isArray(value)) return defaultTools;
+function normalizeItems(value: unknown): WarehouseItem[] {
+  if (!Array.isArray(value)) return [];
   return value
-    .filter((item): item is Partial<ToolItem> => Boolean(item && typeof item === "object"))
+    .filter((item): item is Partial<WarehouseItem> => Boolean(item && typeof item === "object"))
     .map((item) => ({
-      id: typeof item.id === "string" && item.id ? item.id : createId("tool"),
-      name: typeof item.name === "string" && item.name.trim() ? item.name.trim() : "未命名",
-      url: typeof item.url === "string" && item.url.trim() ? normalizeUrl(item.url) : "#",
+      id: typeof item.id === "string" && item.id ? item.id : createId("item"),
+      name: typeof item.name === "string" && item.name.trim() ? item.name.trim() : "未命名物品",
+      quantity: normalizeQuantity(item.quantity),
+      unit: isUnit(item.unit) ? item.unit : "个",
       updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : new Date().toISOString(),
     }));
 }
 
-function normalizeDeletedTools(value: unknown): DeletedToolItem[] {
+function normalizeDeletedItems(value: unknown): DeletedWarehouseItem[] {
   if (!Array.isArray(value)) return [];
-  return normalizeTools(value).map((tool, index) => {
-    const raw = value[index] as Partial<DeletedToolItem>;
+  return normalizeItems(value).map((item, index) => {
+    const raw = value[index] as Partial<DeletedWarehouseItem>;
     return {
-      ...tool,
+      ...item,
       deletedAt: typeof raw.deletedAt === "string" ? raw.deletedAt : new Date().toISOString(),
     };
   });
 }
 
-function saveTools() {
-  if (tools.value.length) {
-    toolStorage.setter(tools.value);
+function normalizeQuantity(value: unknown) {
+  const quantity = Number(value);
+  return Number.isFinite(quantity) && quantity >= 0 ? quantity : 0;
+}
+
+function isUnit(value: unknown): value is Unit {
+  return typeof value === "string" && (units as readonly string[]).includes(value);
+}
+
+function saveItems() {
+  if (items.value.length) {
+    itemStorage.setter(items.value);
   } else {
-    toolStorage.remove();
+    itemStorage.remove();
   }
 }
 
-function saveDeletedTools() {
-  if (deletedTools.value.length) {
-    recycleStorage.setter(deletedTools.value);
+function saveDeletedItems() {
+  if (deletedItems.value.length) {
+    recycleStorage.setter(deletedItems.value);
   } else {
     recycleStorage.remove();
   }
@@ -247,176 +280,83 @@ function setTheme(theme: ThemeKey) {
   themeStorage.setter(theme);
 }
 
-function onToolPointerDown(event: PointerEvent, tool: ToolItem) {
-  if (event.pointerType === "mouse" && event.button !== 0) return;
-  closeActionMenu();
-  suppressNextClick.value = false;
-  pressedToolId.value = "";
-  dragState.id = tool.id;
-  dragState.startX = event.clientX;
-  dragState.startY = event.clientY;
-  dragState.active = false;
-  cancelLongPress();
-  longPressTimer.value = window.setTimeout(() => {
-    if (dragState.active) return;
-    suppressNextClick.value = true;
-    pressedToolId.value = tool.id;
-    actionToolId.value = tool.id;
-    window.setTimeout(() => {
-      pressedToolId.value = "";
-    }, 240);
-  }, LONG_PRESS_MS);
-}
-
-function onToolPointerMove(event: PointerEvent) {
-  if (!dragState.id) return;
-  const distance = Math.hypot(event.clientX - dragState.startX, event.clientY - dragState.startY);
-  if (!dragState.active && distance < 14) return;
-
-  if (!dragState.active) {
-    dragState.active = true;
-    draggingToolId.value = dragState.id;
-    suppressNextClick.value = true;
-    closeActionMenu();
-    cancelLongPress();
-  }
-
-  event.preventDefault();
-  const target = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement | null;
-  const targetCell = target?.closest<HTMLElement>("[data-tool-id]");
-  const targetId = targetCell?.dataset.toolId;
-  if (!targetId || targetId === dragState.id) return;
-  moveTool(dragState.id, targetId);
-}
-
-function onToolPointerUp() {
-  if (dragState.active) suppressNextClick.value = true;
-  resetDragState();
-}
-
-function onToolPointerCancel() {
-  resetDragState();
-}
-
-function resetDragState() {
-  dragState.id = "";
-  dragState.active = false;
-  draggingToolId.value = "";
-  cancelLongPress();
-}
-
-function moveTool(sourceId: string, targetId: string) {
-  const sourceIndex = tools.value.findIndex((tool) => tool.id === sourceId);
-  const targetIndex = tools.value.findIndex((tool) => tool.id === targetId);
-  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return;
-  const nextTools = [...tools.value];
-  const [movedTool] = nextTools.splice(sourceIndex, 1);
-  nextTools.splice(targetIndex, 0, movedTool);
-  tools.value = nextTools;
-}
-
-function cancelLongPress() {
-  if (!longPressTimer.value) return;
-  window.clearTimeout(longPressTimer.value);
-  longPressTimer.value = undefined;
-}
-
-function handleToolClick(event: MouseEvent) {
-  if (!suppressNextClick.value) return;
-  event.preventDefault();
-  suppressNextClick.value = false;
-}
-
-function closeActionMenu() {
-  actionToolId.value = "";
-  suppressNextClick.value = false;
-}
-
-function editActionTool() {
-  if (!actionTool.value) return;
-  openEditor(actionTool.value);
-  closeActionMenu();
-}
-
-function removeActionTool() {
-  if (!actionTool.value) return;
-  const deletedTool = {
-    ...actionTool.value,
-    deletedAt: new Date().toISOString(),
-  };
-  tools.value = tools.value.filter((tool) => tool.id !== actionToolId.value);
-  deletedTools.value = [deletedTool, ...deletedTools.value.filter((tool) => tool.id !== deletedTool.id)];
-  closeActionMenu();
-  showToast(`已移入回收站`);
-}
-
-function openEditor(tool?: ToolItem) {
-  editingToolId.value = tool?.id || "";
-  toolForm.name = tool?.name || "";
-  toolForm.url = tool?.url || "";
+function openEditor(item?: WarehouseItem) {
+  editingItemId.value = item?.id || "";
+  itemForm.name = item?.name || "";
+  itemForm.quantity = item?.quantity ?? 1;
+  itemForm.unit = isUnit(item?.unit) ? item.unit : "个";
   editorPopup.value = true;
 }
 
-function saveTool() {
-  const name = toolForm.name.trim();
-  const url = normalizeUrl(toolForm.url.trim());
+function saveItem() {
+  const name = itemForm.name.trim();
+  const quantity = normalizeQuantity(itemForm.quantity);
   if (!name) {
     showToast("请填写名称");
     return;
   }
-  if (!url) {
-    showToast("请填写链接");
-    return;
-  }
 
-  if (editingToolId.value) {
-    tools.value = tools.value.map((tool) => tool.id === editingToolId.value ? {
-      ...tool,
+  if (editingItemId.value) {
+    items.value = items.value.map((item) => item.id === editingItemId.value ? {
+      ...item,
       name,
-      url,
+      quantity,
+      unit: itemForm.unit,
       updatedAt: new Date().toISOString(),
-    } : tool);
+    } : item);
   } else {
-    tools.value.push(createTool(name, url));
+    items.value = [createItem(name, quantity, itemForm.unit), ...items.value];
   }
 
   editorPopup.value = false;
   showToast("已保存");
 }
 
+function removeItem(id: string) {
+  const target = items.value.find((item) => item.id === id);
+  if (!target) return;
+  const deletedItem = {
+    ...target,
+    deletedAt: new Date().toISOString(),
+  };
+  items.value = items.value.filter((item) => item.id !== id);
+  deletedItems.value = [deletedItem, ...deletedItems.value.filter((item) => item.id !== id)];
+  showToast("已移入回收站");
+}
+
 function openRecycleBin() {
-  deletedTools.value = purgeExpiredDeletedTools(deletedTools.value);
+  deletedItems.value = purgeExpiredDeletedItems(deletedItems.value);
   settingsPopup.value = false;
   recyclePopup.value = true;
 }
 
-function purgeExpiredDeletedTools(list: DeletedToolItem[]) {
+function purgeExpiredDeletedItems(list: DeletedWarehouseItem[]) {
   const now = Date.now();
-  return list.filter((tool) => now - new Date(tool.deletedAt).getTime() < RECYCLE_KEEP_MS);
+  return list.filter((item) => now - new Date(item.deletedAt).getTime() < RECYCLE_KEEP_MS);
 }
 
-function getRecycleDaysLeft(tool: DeletedToolItem) {
-  const deletedTime = new Date(tool.deletedAt).getTime();
+function getRecycleDaysLeft(item: DeletedWarehouseItem) {
+  const deletedTime = new Date(item.deletedAt).getTime();
   const leftMs = Math.max(0, RECYCLE_KEEP_MS - (Date.now() - deletedTime));
   return Math.max(1, Math.ceil(leftMs / (24 * 60 * 60 * 1000)));
 }
 
-function restoreDeletedTool(id: string) {
-  const deletedTool = deletedTools.value.find((tool) => tool.id === id);
-  if (!deletedTool) return;
-  const { deletedAt: _deletedAt, ...restoredTool } = deletedTool;
-  tools.value.push({
-    ...restoredTool,
-    id: tools.value.some((tool) => tool.id === restoredTool.id) ? createId("tool") : restoredTool.id,
+function restoreDeletedItem(id: string) {
+  const deletedItem = deletedItems.value.find((item) => item.id === id);
+  if (!deletedItem) return;
+  const { deletedAt: _deletedAt, ...restoredItem } = deletedItem;
+  items.value = [{
+    ...restoredItem,
+    id: items.value.some((item) => item.id === restoredItem.id) ? createId("item") : restoredItem.id,
     updatedAt: new Date().toISOString(),
-  });
-  deletedTools.value = deletedTools.value.filter((tool) => tool.id !== id);
+  }, ...items.value];
+  deletedItems.value = deletedItems.value.filter((item) => item.id !== id);
   recyclePopup.value = false;
-  showToast("工具已恢复");
+  showToast("物品已恢复");
 }
 
-function purgeDeletedTool(id: string) {
-  deletedTools.value = deletedTools.value.filter((tool) => tool.id !== id);
+function purgeDeletedItem(id: string) {
+  deletedItems.value = deletedItems.value.filter((item) => item.id !== id);
   showToast("已彻底删除");
 }
 
@@ -428,7 +368,7 @@ function openImportExport() {
 }
 
 function exportAllData() {
-  const backupText = JSON.stringify({ tools: tools.value, deletedTools: deletedTools.value }, null, 2);
+  const backupText = JSON.stringify({ items: items.value, deletedItems: deletedItems.value }, null, 2);
   const blob = new Blob([backupText], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const downloadLink = document.createElement("a");
@@ -450,17 +390,17 @@ function onImportFileLoaded(payload: { dataStr: string; fileName: string }) {
 
 function importData() {
   try {
-    const parsedData = JSON.parse(importInfo.value.dataStr) as ToolsPageBackupData;
+    const parsedData = JSON.parse(importInfo.value.dataStr) as WarehouseBackupData;
     if (!parsedData || typeof parsedData !== "object" || Array.isArray(parsedData)) {
       throw new Error("Invalid backup data");
     }
-    const importedTools = normalizeTools(parsedData.tools);
-    const importedDeletedTools = normalizeDeletedTools(parsedData.deletedTools);
-    if (!Array.isArray(parsedData.tools) || importedTools.length !== parsedData.tools.length) {
-      throw new Error("Invalid tools");
+    const importedItems = normalizeItems(parsedData.items);
+    const importedDeletedItems = normalizeDeletedItems(parsedData.deletedItems);
+    if (!Array.isArray(parsedData.items) || importedItems.length !== parsedData.items.length) {
+      throw new Error("Invalid items");
     }
-    tools.value = importedTools;
-    deletedTools.value = importedDeletedTools;
+    items.value = importedItems;
+    deletedItems.value = importedDeletedItems;
     importExportInfo.value.show = false;
     importInfo.value.dataStr = "";
     importInfo.value.fileName = "";
@@ -473,27 +413,24 @@ function importData() {
 function resetAllData() {
   showConfirmDialog({
     title: "提示",
-    message: "确认清除所有工具数据吗？",
+    message: "确认清除所有库房数据吗？",
     width: "250px",
   }).then(() => {
-    tools.value = [];
-    deletedTools.value = [];
-    toolStorage.remove();
+    items.value = [];
+    deletedItems.value = [];
+    itemStorage.remove();
     recycleStorage.remove();
     settingsPopup.value = false;
     showToast("数据已重置");
   }).catch(() => {});
 }
 
-
-function getToolInitial(name: string) {
-  return name.trim().slice(0, 1) || "工";
+function getItemInitial(name: string) {
+  return name.trim().slice(0, 1) || "库";
 }
 
-function normalizeUrl(value: string) {
-  if (!value) return "";
-  if (/^(https?:|mailto:|tel:|\/|\.\/|\.\.\/|#)/i.test(value)) return value;
-  return `https://${value}`;
+function formatQuantity(quantity: number) {
+  return Number.isInteger(quantity) ? String(quantity) : String(Number(quantity.toFixed(2)));
 }
 
 function scrollToTop() {
@@ -513,7 +450,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener("scroll", updateScrollTopVisibility);
-  resetDragState();
 });
 </script>
 
@@ -521,7 +457,10 @@ onUnmounted(() => {
 .home-page {
   min-height: 100vh;
   padding: 12px;
-  background: var(--page-bg);
+  background:
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 32%),
+    radial-gradient(circle at 92% 10%, rgba(255, 143, 61, 0.16), transparent 28%),
+    var(--page-bg);
   color: var(--text-main);
 }
 
@@ -530,7 +469,7 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-.tools-view {
+.warehouse-view {
   width: min(100%, 780px);
   margin: 0 auto;
 }
@@ -543,9 +482,9 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin: -12px -12px 18px;
+  margin: -12px -12px 0;
   padding: 18px max(18px, calc((100vw - 780px) / 2 + 18px)) 16px;
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
   box-shadow: var(--header-shadow);
   backdrop-filter: blur(12px);
 }
@@ -561,8 +500,9 @@ onUnmounted(() => {
 .page-header h1 {
   margin: 0;
   color: var(--text-strong);
-  font-size: 34px;
+  font-size: 44px;
   line-height: 1.08;
+  letter-spacing: -0.08em;
 }
 
 .header-actions {
@@ -584,209 +524,163 @@ onUnmounted(() => {
   font-size: 18px;
 }
 
-.tool-grid {
+.search-section {
+  position: sticky;
+  top: 92px;
+  z-index: 12;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 28px 18px;
-  padding: 10px 10px 120px;
-  overflow: visible;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 14px 4px 16px;
+  background: transparent;
 }
 
-.tool-cell {
-  position: relative;
-  display: grid;
-  justify-items: center;
-  min-width: 0;
-  z-index: 1;
-}
-
-.tool-cell:has(.inline-action-menu),
-.tool-cell.dragging {
-  z-index: 45;
-}
-
-.tool-cell.dragging .tool-item {
-  opacity: 0.72;
-}
-
-.tool-cell:nth-child(4n + 1) .inline-action-menu {
-  left: 0;
-  transform-origin: 32px top;
-  transform: translateX(0);
-}
-
-.tool-cell:nth-child(4n) .inline-action-menu {
-  right: 0;
-  left: auto;
-  transform-origin: calc(100% - 32px) top;
-  transform: translateX(0);
-}
-
-.tool-cell:has(.inline-action-menu) .app-icon {
-  box-shadow: 0 14px 34px rgba(31, 107, 123, 0.14);
-}
-
-.tool-item {
-  display: grid;
-  justify-items: center;
+.search-box {
+  display: flex;
+  align-items: center;
   gap: 10px;
   min-width: 0;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: var(--text-main);
-  text-align: center;
-  text-decoration: none;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
+  height: 50px;
+  padding: 0 15px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 18px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: var(--shadow);
 }
 
-.app-icon {
+.search-box input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--text-main);
+  background: transparent;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.search-box input::placeholder {
+  color: var(--text-muted);
+}
+
+.create-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 92px;
+  height: 50px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 18px;
+  color: #ffffff;
+  background: var(--create-btn-bg);
+  box-shadow: var(--create-btn-shadow);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.waterfall-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 4px 4px 120px;
+}
+
+.warehouse-card {
   position: relative;
   display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px 36px 14px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
   border-radius: 18px;
-  background:
-    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.95), transparent 34%),
-    linear-gradient(145deg, #ffffff 0%, #f8fbff 100%);
-  box-shadow: 0 10px 26px rgba(38, 56, 88, 0.09);
-  overflow: hidden;
+  background: linear-gradient(145deg, #ffffff 0%, #eef8f6 100%);
+  box-shadow: 0 10px 22px rgba(38, 56, 88, 0.07);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-.letter-icon {
-  color: var(--accent-strong);
-  font-size: 30px;
-  font-weight: 900;
-  letter-spacing: -0.08em;
+.warehouse-card:active {
+  transform: scale(0.98);
 }
 
-.tool-cell:nth-child(3n + 1) .letter-icon {
-  color: #d85d69;
+.warehouse-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px rgba(38, 56, 88, 0.11);
 }
 
-.tool-cell:nth-child(3n + 2) .letter-icon {
-  color: var(--accent-strong);
+.tone-1 {
+  background: linear-gradient(145deg, #ffffff 0%, #fff4df 100%);
 }
 
-.tool-cell:nth-child(3n) .letter-icon {
-  color: #61752d;
+.tone-2 {
+  background: linear-gradient(145deg, #ffffff 0%, #edf3ff 100%);
 }
 
-.plus-icon {
-  color: #0b64e8;
-  font-size: 34px;
+.tone-3 {
+  background: linear-gradient(145deg, #ffffff 0%, #f7eee6 100%);
 }
 
-.tool-name {
-  display: block;
-  max-width: 82px;
-  color: #62666d;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.18;
+.tone-4 {
+  background: linear-gradient(145deg, #ffffff 0%, #eef7e6 100%);
+}
+
+.delete-btn {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--danger-text);
+  background: color-mix(in srgb, var(--danger-bg) 80%, #ffffff);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.warehouse-card h2 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 17px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.quantity-line {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .empty-state {
   display: grid;
   place-items: center;
   gap: 8px;
+  min-height: 46vh;
   padding: 34px 12px;
   text-align: center;
 }
 
 .empty-state.compact {
+  min-height: 0;
   padding: 22px 12px;
 }
 
 .empty-state strong {
   color: var(--text-strong);
+  font-size: 22px;
 }
 
 .empty-state span {
   color: var(--text-muted);
-  font-size: 12px;
-}
-
-.menu-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 35;
-  border: 0;
-  background: transparent;
-}
-
-.inline-action-menu {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 50%;
-  z-index: 46;
-  width: 150px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 18px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.94)),
-    radial-gradient(circle at 18% 0%, rgba(31, 107, 123, 0.12), transparent 46%);
-  box-shadow:
-    0 20px 48px rgba(30, 42, 54, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  overflow: hidden;
-  transform: translateX(-50%);
-  transform-origin: center top;
-}
-
-.inline-action-menu::before {
-  content: "";
-  position: absolute;
-  top: -6px;
-  left: 50%;
-  width: 14px;
-  height: 14px;
-  border-radius: 4px 0 0 0;
-  background: rgba(255, 255, 255, 0.98);
-  transform: translateX(-50%) rotate(45deg);
-  box-shadow: -1px -1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.tool-cell:nth-child(4n + 1) .inline-action-menu::before {
-  left: 32px;
-}
-
-.tool-cell:nth-child(4n) .inline-action-menu::before {
-  right: 32px;
-  left: auto;
-}
-
-.inline-action-menu button {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 46px;
-  border: 0;
-  border-bottom: 1px solid rgba(30, 42, 54, 0.08);
-  background: transparent;
-  color: #17191d;
-  font-size: 17px;
-  font-weight: 850;
-  letter-spacing: 0.02em;
-  text-align: center;
-}
-
-.inline-action-menu button:active {
-  background: rgba(31, 107, 123, 0.08);
-}
-
-.inline-action-menu button:last-child {
-  color: #d05f52;
-}
-
-.inline-action-menu button:last-child {
-  border-bottom: 0;
+  font-size: 13px;
 }
 
 .home-page :deep(.van-popup) {
@@ -795,8 +689,8 @@ onUnmounted(() => {
 }
 
 .home-page :deep(.edit-popup) {
-  width: min(80vw, 320px);
-  border-radius: 16px;
+  width: min(86vw, 360px);
+  border-radius: 18px;
   background: #ffffff;
   box-shadow: 0 18px 48px rgba(38, 56, 88, 0.16);
   overflow: hidden;
@@ -804,6 +698,30 @@ onUnmounted(() => {
 
 .simple-editor {
   padding: 18px 18px 14px;
+}
+
+.editor-title {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.editor-title strong {
+  color: var(--text-strong);
+  font-size: 20px;
+}
+
+.editor-title span,
+.field-row span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.field-row {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
 }
 
 .simple-input {
@@ -820,10 +738,6 @@ onUnmounted(() => {
   font-weight: 650;
 }
 
-.simple-input + .simple-input {
-  margin-top: 4px;
-}
-
 .simple-input::placeholder {
   color: var(--text-muted);
   opacity: 0.7;
@@ -831,6 +745,28 @@ onUnmounted(() => {
 
 .simple-input:focus {
   border-bottom-color: var(--accent);
+}
+
+.unit-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.unit-option {
+  height: 34px;
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  color: var(--text-main);
+  background: var(--surface-soft);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.unit-option.active {
+  border-color: var(--accent);
+  color: #ffffff;
+  background: var(--submit-btn-bg);
 }
 
 .simple-actions {
@@ -925,24 +861,50 @@ onUnmounted(() => {
   color: var(--danger-text);
 }
 
-
 @media (max-width: 520px) {
   .home-page {
     padding: 10px;
   }
 
   .page-header {
-    margin: -10px -10px 18px;
+    margin: -10px -10px 0;
     padding: 18px 24px 16px;
   }
 
   .page-header h1 {
-    font-size: 30px;
+    font-size: 40px;
   }
 
-  .tool-grid {
-    gap: 30px 12px;
-    padding: 10px 8px 120px;
+  .search-section {
+    top: 88px;
+    grid-template-columns: minmax(0, 1fr) 86px;
+    gap: 8px;
+    padding-inline: 0;
+  }
+
+  .create-button {
+    min-width: 86px;
+    padding: 0 10px;
+    font-size: 14px;
+  }
+
+  .waterfall-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding-inline: 0;
+  }
+
+  .warehouse-card {
+    padding: 12px 32px 12px 12px;
+    border-radius: 16px;
+  }
+
+  .warehouse-card h2 {
+    font-size: 16px;
+  }
+
+  .quantity-line {
+    font-size: 14px;
   }
 
   .recycle-item {
@@ -951,25 +913,6 @@ onUnmounted(() => {
 
   .recycle-actions {
     justify-content: flex-end;
-  }
-
-  .inline-action-menu {
-    width: 132px;
-  }
-
-  .app-icon {
-    width: 58px;
-    height: 58px;
-    border-radius: 16px;
-  }
-
-  .letter-icon {
-    font-size: 28px;
-  }
-
-  .tool-name {
-    max-width: 76px;
-    font-size: 15px;
   }
 }
 </style>
