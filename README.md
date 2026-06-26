@@ -1,4 +1,4 @@
-# tools-page
+# warehouse
 
 基于 local-bill 项目复制改造的单页工具入口。
 

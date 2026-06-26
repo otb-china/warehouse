@@ -167,9 +167,9 @@ const toolForm = reactive({ name: "", url: "" });
 const importExportInfo = ref({ show: false });
 const importInfo = ref({ dataStr: "", fileName: "" });
 
-const toolStorage = LStorage.new("toolsPageData");
-const recycleStorage = LStorage.new("toolsPageRecycleBin");
-const themeStorage = LStorage.new("toolsPageTheme");
+const toolStorage = LStorage.new("warehouseData");
+const recycleStorage = LStorage.new("warehouseRecycleBin");
+const themeStorage = LStorage.new("warehouseTheme");
 
 const currentThemeOption = computed(() => {
   return themeOptions.find((theme) => theme.key === currentTheme.value) || themeOptions[0];
@@ -433,7 +433,7 @@ function exportAllData() {
   const url = URL.createObjectURL(blob);
   const downloadLink = document.createElement("a");
   downloadLink.href = url;
-  downloadLink.download = `tools-page-backup-${dayjs(new Date()).format(DATE_FORMAT)}.json`;
+  downloadLink.download = `warehouse-backup-${dayjs(new Date()).format(DATE_FORMAT)}.json`;
   document.body.appendChild(downloadLink);
   downloadLink.click();
   document.body.removeChild(downloadLink);
