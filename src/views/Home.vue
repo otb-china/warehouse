@@ -316,13 +316,19 @@ function saveItem() {
 function removeItem(id: string) {
   const target = items.value.find((item) => item.id === id);
   if (!target) return;
-  const deletedItem = {
-    ...target,
-    deletedAt: new Date().toISOString(),
-  };
-  items.value = items.value.filter((item) => item.id !== id);
-  deletedItems.value = [deletedItem, ...deletedItems.value.filter((item) => item.id !== id)];
-  showToast("已移入回收站");
+  showConfirmDialog({
+    title: "移入回收站",
+    message: `确认将“${target.name}”移入回收站吗？`,
+    width: "280px",
+  }).then(() => {
+    const deletedItem = {
+      ...target,
+      deletedAt: new Date().toISOString(),
+    };
+    items.value = items.value.filter((item) => item.id !== id);
+    deletedItems.value = [deletedItem, ...deletedItems.value.filter((item) => item.id !== id)];
+    showToast("已移入回收站");
+  }).catch(() => {});
 }
 
 function openRecycleBin() {
