@@ -170,7 +170,7 @@ const SCROLL_TOP_THRESHOLD = 240;
 const DATE_FORMAT = "YYYY-MM-DD";
 const RECYCLE_KEEP_DAYS = 7;
 const RECYCLE_KEEP_MS = RECYCLE_KEEP_DAYS * 24 * 60 * 60 * 1000;
-const units = ["个", "只", "支", "根", "袋", "瓶", "条", "米", "张", "箱", "盒", "包", "件", "卷", "套"] as const;
+const units = ["个", "只", "支", "根", "袋", "瓶", "条", "米", "张", "箱", "盒", "包", "件", "卷", "套", "片"] as const;
 type Unit = typeof units[number];
 
 const showScrollTop = ref(false);
