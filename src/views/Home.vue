@@ -41,6 +41,7 @@
           <button class="delete-btn" type="button" aria-label="移入回收站" @click.stop="removeItem(item.id)">×</button>
           <h2>{{ item.name }}</h2>
           <p class="quantity-line">{{ formatQuantity(item.quantity) }}{{ item.unit }}</p>
+          <time class="updated-date" :datetime="item.updatedAt">更新 {{ dayjs(item.updatedAt).format(DATE_FORMAT) }}</time>
         </article>
       </section>
 
@@ -237,7 +238,9 @@ function normalizeItems(value: unknown): WarehouseItem[] {
       name: typeof item.name === "string" && item.name.trim() ? item.name.trim() : "未命名物品",
       quantity: normalizeQuantity(item.quantity),
       unit: isUnit(item.unit) ? item.unit : "个",
-      updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : new Date().toISOString(),
+      updatedAt: typeof item.updatedAt === "string" && dayjs(item.updatedAt).isValid()
+        ? item.updatedAt
+        : new Date().toISOString(),
     }));
 }
 
@@ -687,6 +690,12 @@ onUnmounted(() => {
   color: var(--text-muted);
   font-size: 15px;
   font-weight: 900;
+}
+
+.updated-date {
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .empty-state {
