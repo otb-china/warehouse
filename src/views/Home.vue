@@ -20,6 +20,7 @@
         <label class="search-box">
           <el-icon><Search /></el-icon>
           <input v-model.trim="keyword" type="search" placeholder="搜索库房物品" />
+          <span class="search-count" aria-live="polite">共 {{ filteredItems.length }} 项</span>
         </label>
         <button class="create-button" type="button" @click="openEditor()">
           <el-icon><Plus /></el-icon>
@@ -583,6 +584,14 @@ onUnmounted(() => {
 
 .search-box input::placeholder {
   color: var(--text-muted);
+}
+
+.search-count {
+  flex: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .create-button {
