@@ -5,11 +5,11 @@
         <div>
           <p class="section-tag">Data</p>
           <h3>导入总数据</h3>
-          <p>选择导出的备份文件，会覆盖当前全部库房数据。</p>
+          <p>在库物品与回收站分别按名称合并；同名保留更新时间较新的记录。</p>
         </div>
       </div>
 
-      <div v-if="hasOverwriteData" class="import-export-card">
+      <div v-if="hasLocalData" class="import-export-card">
         <div>
           <strong>当前数据</strong>
           <span>{{ summary }}</span>
@@ -53,7 +53,7 @@ import { Upload } from "@element-plus/icons-vue";
 
 const props = defineProps<{
   show: boolean;
-  hasOverwriteData: boolean;
+  hasLocalData: boolean;
   summary: string;
   fileName: string;
   hasFile: boolean;

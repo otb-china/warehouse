@@ -145,7 +145,7 @@
 
     <ImportDataPopup
       v-model:show="importExportInfo.show"
-      :has-overwrite-data="hasImportOverwriteData"
+      :has-local-data="hasImportLocalData"
       :summary="importExportSummary"
       :file-name="importInfo.fileName"
       :has-file="Boolean(importInfo.dataStr)"
@@ -201,8 +201,8 @@ const filteredItems = computed(() => {
   if (!query) return items.value;
   return items.value.filter((item) => item.name.toLowerCase().includes(query));
 });
-const importExportSummary = computed(() => `导入后将覆盖 ${items.value.length} 个物品`);
-const hasImportOverwriteData = computed(() => items.value.length > 0);
+const importExportSummary = computed(() => `${items.value.length} 个在库物品，${deletedItems.value.length} 个回收站物品`);
+const hasImportLocalData = computed(() => items.value.length > 0 || deletedItems.value.length > 0);
 
 watch(items, saveItems, { deep: true });
 watch(deletedItems, saveDeletedItems, { deep: true });
@@ -258,6 +258,30 @@ function normalizeDeletedItems(value: unknown): DeletedWarehouseItem[] {
 function normalizeQuantity(value: unknown) {
   const quantity = Number(value);
   return Number.isFinite(quantity) && quantity >= 0 ? quantity : 0;
+}
+
+function mergeItemsByName<T extends WarehouseItem>(localItems: T[], importedItems: T[]): T[] {
+  const merged: T[] = [];
+  const indexes = new Map<string, number>();
+  const usedIds = new Set<string>();
+
+  for (const item of [...localItems, ...importedItems]) {
+    const index = indexes.get(item.name);
+    if (index !== undefined) {
+      const existing = merged[index]!;
+      if (new Date(item.updatedAt).getTime() > new Date(existing.updatedAt).getTime()) {
+        merged[index] = { ...item, id: existing.id };
+      }
+      continue;
+    }
+
+    const id = usedIds.has(item.id) ? createId("item") : item.id;
+    indexes.set(item.name, merged.length);
+    usedIds.add(id);
+    merged.push(id === item.id ? item : { ...item, id });
+  }
+
+  return merged;
 }
 
 function isUnit(value: unknown): value is Unit {
@@ -410,12 +434,21 @@ function importData() {
     if (!Array.isArray(parsedData.items) || importedItems.length !== parsedData.items.length) {
       throw new Error("Invalid items");
     }
-    items.value = importedItems;
-    deletedItems.value = importedDeletedItems;
+    if (parsedData.deletedItems !== undefined && (
+      !Array.isArray(parsedData.deletedItems)
+      || importedDeletedItems.length !== parsedData.deletedItems.length
+    )) {
+      throw new Error("Invalid deleted items");
+    }
+    items.value = mergeItemsByName(items.value, importedItems);
+    deletedItems.value = mergeItemsByName(
+      deletedItems.value,
+      purgeExpiredDeletedItems(importedDeletedItems),
+    );
     importExportInfo.value.show = false;
     importInfo.value.dataStr = "";
     importInfo.value.fileName = "";
-    showToast("总数据导入成功");
+    showToast("总数据合并成功");
   } catch {
     showToast("导入失败，请检查备份文件");
   }
@@ -434,10 +467,6 @@ function resetAllData() {
     settingsPopup.value = false;
     showToast("数据已重置");
   }).catch(() => {});
-}
-
-function getItemInitial(name: string) {
-  return name.trim().slice(0, 1) || "库";
 }
 
 function formatQuantity(quantity: number) {
