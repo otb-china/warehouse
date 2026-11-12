@@ -2,15 +2,15 @@
   <div class="home-page" :style="themeStyle">
     <div class="sticky-panel">
       <header class="page-header">
-        <div>
-          <p class="hero-tag">Warehouse</p>
+        <div class="header-title">
           <h1>库房</h1>
+          <span class="item-count" aria-live="polite">共 {{ filteredItems.length }} 项</span>
         </div>
         <div class="header-actions">
-          <button v-if="showScrollTop" class="header-icon" type="button" @click="scrollToTop">
+          <button v-if="showScrollTop" class="header-icon" type="button" aria-label="返回顶部" @click="scrollToTop">
             <el-icon><Top /></el-icon>
           </button>
-          <button class="header-icon" type="button" @click="settingsPopup = true">
+          <button class="header-icon" type="button" aria-label="设置" @click="settingsPopup = true">
             <el-icon><Setting /></el-icon>
           </button>
         </div>
@@ -19,8 +19,7 @@
       <section class="search-section" aria-label="搜索和新增">
         <label class="search-box">
           <el-icon><Search /></el-icon>
-          <input v-model.trim="keyword" type="search" placeholder="搜索库房物品" />
-          <span class="search-count" aria-live="polite">共 {{ filteredItems.length }} 项</span>
+          <input v-model.trim="keyword" type="search" aria-label="搜索库房物品" placeholder="搜索库房物品" />
         </label>
         <button class="create-button" type="button" @click="openEditor()">
           <el-icon><Plus /></el-icon>
@@ -497,10 +496,7 @@ onUnmounted(() => {
 .home-page {
   min-height: 100vh;
   padding: 12px;
-  background:
-    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 32%),
-    radial-gradient(circle at 92% 10%, rgba(255, 143, 61, 0.16), transparent 28%),
-    var(--page-bg);
+  background-color: var(--page-bg);
   color: var(--text-main);
 }
 
@@ -515,45 +511,43 @@ onUnmounted(() => {
 }
 
 .sticky-panel {
+  --toolbar-inset: max(16px, calc((100% - 780px) / 2 + 4px));
   position: sticky;
   top: 0;
   z-index: 20;
   margin: -12px -12px 0;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--surface) 88%, transparent) 0%,
-      color-mix(in srgb, var(--surface) 88%, transparent) 56%,
-      color-mix(in srgb, var(--page-bg) 94%, #ffffff) 57%,
-      color-mix(in srgb, var(--page-bg) 90%, #ffffff) 86%,
-      color-mix(in srgb, var(--page-bg) 0%, transparent) 100%
-    );
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--divider);
   box-shadow: var(--header-shadow);
-  backdrop-filter: blur(14px);
 }
 
 .page-header {
+  background-color: inherit;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 18px max(18px, calc((100vw - 780px) / 2 + 18px)) 16px;
+  padding: 10px var(--toolbar-inset) 8px;
 }
 
-.hero-tag {
-  margin: 0 0 4px;
-  color: var(--text-muted);
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.header-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
 }
 
 .page-header h1 {
   margin: 0;
   color: var(--text-strong);
-  font-size: 44px;
-  line-height: 1.08;
-  letter-spacing: -0.08em;
+  font-size: 27px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.item-count {
+  color: var(--text-subtle);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .header-actions {
@@ -566,41 +560,37 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: 0;
-  border-radius: 999px;
-  background: var(--header-icon-bg);
+  border-radius: 12px;
+  background: var(--surface-muted);
   color: var(--accent);
   font-size: 18px;
 }
 
 .search-section {
-  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  width: min(100%, 780px);
-  margin: 0 auto;
-  padding: 14px 4px 16px;
-}
-
-.search-section::before {
-  content: none;
+  gap: 8px;
+  padding: 0 var(--toolbar-inset) 12px;
 }
 
 .search-box {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
-  height: 50px;
-  padding: 0 15px;
-  border: 1px solid rgba(255, 255, 255, 0.82);
-  border-radius: 18px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--divider);
+  border-radius: 12px;
   color: var(--accent);
-  background: color-mix(in srgb, var(--surface) 96%, #ffffff);
-  box-shadow: var(--shadow);
+  background: var(--surface-soft);
+}
+
+.search-box:focus-within {
+  border-color: var(--accent);
 }
 
 .search-box input {
@@ -611,19 +601,11 @@ onUnmounted(() => {
   color: var(--text-main);
   background: transparent;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 500;
 }
 
 .search-box input::placeholder {
   color: var(--text-muted);
-}
-
-.search-count {
-  flex: none;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
 }
 
 .create-button {
@@ -631,23 +613,22 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  min-width: 92px;
-  height: 50px;
-  padding: 0 12px;
+  min-height: 44px;
+  padding: 0 14px;
   border: 0;
-  border-radius: 18px;
+  border-radius: 12px;
   color: #ffffff;
-  background: var(--create-btn-bg);
-  box-shadow: var(--create-btn-shadow);
-  font-size: 15px;
-  font-weight: 900;
+  background: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .waterfall-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
-  padding: 4px 4px 120px;
+  padding: 12px 4px 8px;
 }
 
 .warehouse-card {
@@ -935,27 +916,8 @@ onUnmounted(() => {
   }
 
   .sticky-panel {
+    --toolbar-inset: 10px;
     margin: -10px -10px 0;
-  }
-
-  .page-header {
-    padding: 18px 24px 16px;
-  }
-
-  .page-header h1 {
-    font-size: 40px;
-  }
-
-  .search-section {
-    grid-template-columns: minmax(0, 1fr) 86px;
-    gap: 8px;
-    padding-inline: 10px;
-  }
-
-  .create-button {
-    min-width: 86px;
-    padding: 0 10px;
-    font-size: 14px;
   }
 
   .waterfall-list {
