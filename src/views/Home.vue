@@ -19,7 +19,7 @@
       <section class="search-section" aria-label="搜索和新增">
         <label class="search-box">
           <el-icon><Search /></el-icon>
-          <input v-model.trim="keyword" type="search" aria-label="搜索库房物品" placeholder="搜索库房物品" />
+          <input ref="searchInput" v-model.trim="keyword" type="search" aria-label="搜索库房物品" placeholder="搜索库房物品" />
         </label>
         <button class="create-button" type="button" @click="openEditor()">
           <el-icon><Plus /></el-icon>
@@ -39,7 +39,7 @@
         >
           <button class="delete-btn" type="button" aria-label="移入回收站" @click.stop="removeItem(item.id)">×</button>
           <h2>{{ item.name }}</h2>
-          <p class="quantity-line">{{ formatQuantity(item.quantity) }}{{ item.unit }}</p>
+          <p class="quantity-line">{{ formatQuantity(item.quantity) }}<span class="quantity-unit">{{ item.unit }}</span></p>
           <time class="updated-date" :datetime="item.updatedAt">更新 {{ dayjs(item.updatedAt).format(DATE_FORMAT) }}</time>
         </article>
       </section>
@@ -175,6 +175,7 @@ const units = ["个", "只", "支", "根", "袋", "瓶", "条", "米", "张", "�
 type Unit = typeof units[number];
 
 const showScrollTop = ref(false);
+const searchInput = ref<HTMLInputElement | null>(null);
 const currentTheme = ref<ThemeKey>(DEFAULT_THEME);
 const items = ref<WarehouseItem[]>([]);
 const deletedItems = ref<DeletedWarehouseItem[]>([]);
@@ -479,6 +480,10 @@ function scrollToTop() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+function blurSearchOnScroll() {
+  if (document.activeElement === searchInput.value) searchInput.value?.blur();
+}
+
 function updateScrollTopVisibility() {
   showScrollTop.value = window.scrollY > SCROLL_TOP_THRESHOLD;
 }
@@ -488,18 +493,20 @@ init();
 onMounted(() => {
   updateScrollTopVisibility();
   window.addEventListener("scroll", updateScrollTopVisibility, { passive: true });
+  window.addEventListener("touchmove", blurSearchOnScroll, { passive: true });
+  window.addEventListener("wheel", blurSearchOnScroll, { passive: true });
 });
 
 onUnmounted(() => {
   window.removeEventListener("scroll", updateScrollTopVisibility);
+  window.removeEventListener("touchmove", blurSearchOnScroll);
+  window.removeEventListener("wheel", blurSearchOnScroll);
 });
 </script>
 
 <style lang="scss" scoped>
 .home-page {
   min-height: 100vh;
-  background-image: radial-gradient(120% 360px at 100% 0%, var(--accent-soft) 0%, transparent 70%), radial-gradient(90% 280px at 0% 0%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 70%);
-  background-repeat: no-repeat;
   padding: 0 20px calc(12px + env(safe-area-inset-bottom));
   background-color: var(--page-bg);
   color: var(--text-main);
@@ -616,9 +623,8 @@ onUnmounted(() => {
 }
 
 .search-box:focus-within {
-  border-color: var(--accent-border);
+  border-color: var(--accent);
   color: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-ring);
 }
 
 .search-box input {
@@ -653,7 +659,6 @@ onUnmounted(() => {
   border-radius: var(--radius-md);
   color: #ffffff;
   background: var(--accent);
-  box-shadow: var(--submit-btn-shadow);
   font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
@@ -676,55 +681,25 @@ onUnmounted(() => {
 }
 
 .warehouse-card {
-  --tone-bg: #eef4f2;
-  --tone-ink: #3d6b62;
-  --tone-dot: #8fb3aa;
   position: relative;
-  isolation: isolate;
   display: flex;
   flex-direction: column;
   min-width: 0;
   padding: 16px 16px 14px;
-  border: 1px solid color-mix(in srgb, var(--tone-bg) 60%, var(--divider));
-  border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, #ffffff 0%, var(--tone-bg) 100%);
-  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.03), 0 4px 14px rgba(17, 24, 39, 0.035);
+  border: 1px solid var(--divider);
+  border-radius: 16px;
+  background: var(--surface);
   cursor: pointer;
-  overflow: hidden;
-  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
-}
-
-.tone-1 {
-  --tone-bg: #f6f2ea;
-  --tone-ink: #7a6342;
-  --tone-dot: #c4b08e;
-}
-
-.tone-2 {
-  --tone-bg: #eef1f6;
-  --tone-ink: #4a5f7e;
-  --tone-dot: #9aa9c0;
-}
-
-.tone-3 {
-  --tone-bg: #f6efee;
-  --tone-ink: #80544f;
-  --tone-dot: #c4a19c;
-}
-
-.tone-4 {
-  --tone-bg: #f1eff5;
-  --tone-ink: #5f5679;
-  --tone-dot: #ada6c0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .warehouse-card:hover {
-  box-shadow: 0 2px 4px rgba(17, 24, 39, 0.04), 0 10px 24px rgba(17, 24, 39, 0.07);
-  transform: translateY(-2px);
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow);
 }
 
 .warehouse-card:active {
-  transform: scale(0.985);
+  background: var(--surface-soft);
 }
 
 .delete-btn {
@@ -764,32 +739,29 @@ onUnmounted(() => {
 }
 
 .quantity-line {
-  margin: 10px 0 0;
-  color: var(--tone-ink);
-  font-size: 26px;
-  font-weight: 700;
+  margin: 12px 0 0;
+  color: var(--accent);
+  font-size: 24px;
+  font-weight: 650;
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
+}
+
+.quantity-unit {
+  margin-left: 3px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .updated-date {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-  color: var(--text-muted);
+  margin-top: 8px;
+  color: var(--text-subtle);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-
-.updated-date::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--tone-dot);
 }
 
 .empty-state {
@@ -1077,8 +1049,8 @@ onUnmounted(() => {
   }
 
   .warehouse-card {
-    padding: 14px 14px 13px;
-    border-radius: 16px;
+    padding: 14px 14px 12px;
+    border-radius: 14px;
   }
 
   .delete-btn {
@@ -1087,8 +1059,8 @@ onUnmounted(() => {
   }
 
   .quantity-line {
-    margin-top: 8px;
-    font-size: 24px;
+    margin-top: 10px;
+    font-size: 22px;
   }
 
   .simple-editor {
@@ -1096,10 +1068,4 @@ onUnmounted(() => {
   }
 }
 
-@media (hover: none) {
-  .warehouse-card:hover {
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.03), 0 4px 14px rgba(17, 24, 39, 0.035);
-    transform: none;
-  }
-}
 </style>
