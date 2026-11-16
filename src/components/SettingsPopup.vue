@@ -105,10 +105,7 @@ const popupShow = computed({
 
 <style lang="scss" scoped>
 .theme-panel {
-  margin-top: 16px;
-  padding: 14px;
-  border-radius: 12px;
-  background: var(--surface-soft);
+  margin-top: 20px;
 }
 
 .theme-panel-head {
@@ -120,37 +117,46 @@ const popupShow = computed({
 }
 
 .theme-panel-head strong {
-  color: var(--text-strong);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 .theme-panel-head span {
   flex: 0 0 auto;
   color: var(--accent);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .theme-options {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .theme-option {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
   min-width: 0;
-  padding: 10px;
-  border: 1px solid transparent;
-  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid var(--divider);
+  border-radius: 14px;
   background: var(--surface);
   text-align: left;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-option:hover {
+  border-color: var(--accent-border);
 }
 
 .theme-option.active {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-ring);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .theme-swatch {
@@ -158,7 +164,7 @@ const popupShow = computed({
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48);
+  box-shadow: inset 0 0 0 1px rgba(17, 24, 39, 0.08);
 }
 
 .theme-option > span:last-child {
@@ -172,30 +178,41 @@ const popupShow = computed({
 
 .theme-option strong {
   color: var(--text-strong);
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .theme-option em {
-  margin-top: 3px;
+  margin-top: 2px;
   color: var(--text-muted);
   font-size: 11px;
   font-style: normal;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .settings-item {
-  padding: 14px 16px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--surface-soft);
+  padding: 14px;
+  border: 1px solid var(--divider);
+  border-radius: 14px;
+  background: var(--surface);
   text-align: left;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s var(--ease);
+}
+
+.settings-item:hover {
+  border-color: var(--accent-border);
+  background: var(--surface-soft);
+}
+
+.settings-item:active {
+  transform: scale(0.985);
 }
 
 .settings-item-feature {
@@ -203,27 +220,26 @@ const popupShow = computed({
   align-items: center;
   gap: 12px;
   width: 100%;
-  background: var(--settings-card-bg);
 }
 
-.settings-item-feature.danger {
-  background: var(--settings-danger-bg);
+.settings-item-feature.danger:hover {
+  border-color: color-mix(in srgb, var(--danger-text) 30%, transparent);
+  background: var(--danger-bg);
 }
 
-.settings-item-feature.danger .settings-item strong,
 .settings-item span {
   display: block;
 }
 
 .settings-item strong {
-  color: var(--text-main);
+  display: block;
+  color: var(--text-strong);
   font-size: 14px;
+  font-weight: 600;
 }
 
-.settings-item span {
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
+.settings-item-feature.danger strong {
+  color: var(--danger-text);
 }
 
 .settings-item-feature > span:last-child {
@@ -233,16 +249,38 @@ const popupShow = computed({
 
 .settings-item-feature em {
   display: block;
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--text-muted);
   font-size: 12px;
   font-style: normal;
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 @media (max-width: 720px) {
   .settings-grid {
     grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    border: 1px solid var(--divider);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .settings-item {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .settings-item + .settings-item {
+    border-top: 1px solid var(--divider);
+  }
+
+  .settings-item:hover {
+    border-color: var(--divider);
+  }
+
+  .settings-item:active {
+    transform: none;
+    background: var(--surface-soft);
   }
 }
 </style>

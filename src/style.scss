@@ -1,11 +1,48 @@
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --van-dialog-radius: 18px;
+  --van-dialog-font-size: 17px;
+  --van-dialog-header-line-height: 24px;
+  --van-dialog-message-font-size: 14px;
+  --van-toast-radius: 12px;
+  --van-toast-background: rgba(17, 24, 39, 0.86);
+  --van-toast-text-padding: 10px 16px;
+  --van-popup-round-radius: 22px;
+  --van-overlay-background: rgba(17, 24, 39, 0.42);
+}
+
 body,
 html {
   margin: 0;
   padding: 0;
   height: 100%;
   width: 100%;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent-ring, rgba(15, 118, 110, 0.3));
+  outline-offset: 2px;
 }
 
 body::-webkit-scrollbar,
@@ -15,13 +52,94 @@ html::-webkit-scrollbar {
   display: none;
 }
 
+.van-dialog {
+  width: min(86vw, 320px) !important;
+  padding: 26px 22px 20px;
+  border-radius: 22px;
+  background: var(--surface, #ffffff);
+  box-shadow: var(--popup-shadow, 0 24px 64px rgba(17, 24, 39, 0.18));
+}
+
+.van-dialog__header {
+  padding: 0;
+  color: var(--text-strong, #111827);
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.van-dialog__content {
+  padding: 0;
+}
+
+.van-dialog__message {
+  padding: 8px 0 0;
+  color: var(--text-muted, #6b7280);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.van-dialog__message--has-title {
+  padding-top: 8px;
+  color: var(--text-muted, #6b7280);
+}
+
+.van-dialog__footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 0;
+  overflow: visible;
+}
+
+.van-dialog__footer.van-hairline--top::after,
+.van-dialog__footer .van-hairline--left::after {
+  display: none;
+}
+
+.van-dialog__footer .van-button {
+  flex: 1;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.van-dialog__cancel,
+.van-dialog__cancel:active {
+  color: var(--text-main, #374151);
+  background: var(--surface-muted, #f1f3f5);
+}
+
+.van-dialog__confirm,
+.van-dialog__confirm:active {
+  color: #ffffff;
+  background: var(--submit-btn-bg, #0f766e);
+  box-shadow: var(--submit-btn-shadow, none);
+}
+
+.van-dialog__footer .van-button::before {
+  border-radius: inherit;
+}
+
 .popup-body {
   max-height: 82vh;
-  padding: 18px 16px 22px;
+  padding: 10px 20px calc(24px + env(safe-area-inset-bottom));
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+.popup-body::before {
+  content: "";
+  display: block;
+  width: 36px;
+  height: 4px;
+  margin: 0 auto 16px;
+  border-radius: 999px;
+  background: var(--divider);
 }
 
 .popup-body::-webkit-scrollbar,
@@ -34,18 +152,23 @@ html::-webkit-scrollbar {
 .popup-head {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
 
 .popup-head h3 {
   margin: 0;
   color: var(--text-strong);
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
 }
 
 .popup-head p {
-  margin: 0;
-  color: var(--text-subtle);
-  font-size: 12px;
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .popup-create-btn {
@@ -55,19 +178,18 @@ html::-webkit-scrollbar {
   gap: 4px;
   flex: 0 0 auto;
   margin-top: 2px;
-  padding: 6px 9px;
-  border: 1px solid var(--divider);
+  padding: 7px 12px;
+  border: 0;
   border-radius: 999px;
-  background: var(--surface);
+  background: var(--accent-soft);
   color: var(--accent);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1;
-  box-shadow: 0 4px 10px rgba(38, 56, 88, 0.06);
 }
 
 .popup-create-btn .el-icon {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .manage-popup-body {
@@ -96,10 +218,10 @@ html::-webkit-scrollbar {
 
 .swipe-btn {
   height: 100%;
-  min-width: 60px;
+  min-width: 64px;
   border: 0;
   color: #ffffff;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .swipe-btn.van-button--primary {
@@ -112,27 +234,38 @@ html::-webkit-scrollbar {
 
 .submit-button {
   width: 100%;
-  margin-top: 28px;
+  height: 48px;
+  margin-top: 24px;
   border: 0;
+  border-radius: var(--radius-md);
   color: #ffffff;
   background: var(--submit-btn-bg);
   box-shadow: var(--submit-btn-shadow);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: transform 0.15s var(--ease), opacity 0.15s ease;
 }
 
 .submit-button:hover,
 .submit-button:focus {
   color: #ffffff;
   background: var(--submit-btn-bg);
+  opacity: 0.94;
+}
+
+.submit-button:active {
+  transform: scale(0.985);
 }
 
 .submit-button.is-disabled,
 .submit-button.is-disabled:hover,
 .submit-button.is-disabled:focus {
   border: 0;
-  color: rgba(255, 255, 255, 0.72);
-  background: var(--submit-btn-bg);
+  color: var(--text-subtle);
+  background: var(--surface-muted);
   box-shadow: none;
-  opacity: 0.48;
+  opacity: 1;
 }
 
 .settings-item-icon {
@@ -140,17 +273,17 @@ html::-webkit-scrollbar {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: var(--surface);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--accent-soft);
   color: var(--accent);
-  box-shadow: 0 8px 18px rgba(31, 107, 123, 0.1);
+  font-size: 18px;
 }
 
 .settings-item-feature.danger .settings-item-icon {
+  background: var(--danger-bg);
   color: var(--danger-text);
-  box-shadow: 0 8px 18px rgba(208, 95, 82, 0.12);
 }
 
 .manage-empty {
@@ -160,7 +293,7 @@ html::-webkit-scrollbar {
   min-height: 220px;
   padding: 20px 14px;
   border: 1px dashed var(--divider);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-soft);
   text-align: center;
 }
@@ -168,11 +301,12 @@ html::-webkit-scrollbar {
 .manage-empty strong {
   color: var(--text-strong);
   font-size: 15px;
+  font-weight: 600;
 }
 
 .manage-empty span {
   max-width: 240px;
   color: var(--text-muted);
   font-size: 12px;
-  line-height: 1.35;
+  line-height: 1.5;
 }

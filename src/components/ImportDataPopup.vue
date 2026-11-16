@@ -102,10 +102,11 @@ const onFileChange = async (event: Event) => {
 
 <style lang="scss" scoped>
 .section-tag {
-  margin: 0 0 4px;
-  color: var(--text-muted);
-  font-size: 11px;
-  letter-spacing: 0.14em;
+  margin: 0 0 4px !important;
+  color: var(--accent) !important;
+  font-size: 11px !important;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -116,14 +117,20 @@ const onFileChange = async (event: Event) => {
 .file-upload-card {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  margin-top: 14px;
-  padding: 14px;
-  border: 1px dashed var(--divider);
-  border-radius: 12px;
+  margin-top: 16px;
+  padding: 18px 16px;
+  border: 1.5px dashed var(--accent-border);
+  border-radius: 14px;
   background: var(--surface-soft);
   text-align: left;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.file-upload-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .file-upload-card > span:last-child {
@@ -136,8 +143,9 @@ const onFileChange = async (event: Event) => {
 }
 
 .file-upload-card strong {
-  color: var(--text-main);
+  color: var(--text-strong);
   font-size: 14px;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -148,7 +156,7 @@ const onFileChange = async (event: Event) => {
   color: var(--text-muted);
   font-size: 12px;
   font-style: normal;
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .import-export-card {
@@ -156,11 +164,12 @@ const onFileChange = async (event: Event) => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 14px 0 12px;
-  padding: 14px;
-  border-radius: 10px;
-  background: var(--stat-income-bg);
-  color: #ffffff;
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--divider);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text-main);
 }
 
 .import-export-card strong,
@@ -169,13 +178,15 @@ const onFileChange = async (event: Event) => {
 }
 
 .import-export-card strong {
-  font-size: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .import-export-card span {
   margin-top: 4px;
-  font-size: 12px;
-  opacity: 0.8;
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 500;
 }
-
 </style>
