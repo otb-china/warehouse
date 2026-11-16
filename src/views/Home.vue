@@ -551,7 +551,6 @@ onUnmounted(() => {
 }
 
 .page-header h1 {
-  position: relative;
   margin: 0;
   color: var(--text-strong);
   font-size: 28px;
@@ -559,17 +558,6 @@ onUnmounted(() => {
   line-height: 1.15;
   letter-spacing: -0.02em;
   white-space: nowrap;
-}
-
-.page-header h1::after {
-  content: "";
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-left: 3px;
-  border-radius: 50%;
-  background: var(--accent);
-  vertical-align: 2px;
 }
 
 .item-count {
@@ -718,9 +706,7 @@ onUnmounted(() => {
   padding: 16px 16px 14px;
   border: 0;
   border-radius: 18px;
-  background:
-    radial-gradient(140px 90px at 100% 0%, color-mix(in srgb, var(--accent) 9%, transparent) 0%, transparent 70%),
-    var(--surface);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 4%, var(--surface)) 0%, color-mix(in srgb, var(--accent) 13%, var(--surface)) 100%);
   box-shadow:
     0 1px 2px rgba(17, 24, 39, 0.04),
     0 4px 10px rgba(17, 24, 39, 0.04),
@@ -738,9 +724,7 @@ onUnmounted(() => {
 }
 
 .warehouse-card:active {
-  background:
-    radial-gradient(140px 90px at 100% 0%, color-mix(in srgb, var(--accent) 12%, transparent) 0%, transparent 70%),
-    var(--surface-soft);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 8%, var(--surface)) 0%, color-mix(in srgb, var(--accent) 18%, var(--surface)) 100%);
 }
 
 .delete-btn {
@@ -796,7 +780,7 @@ onUnmounted(() => {
   padding: 2px 7px;
   border-radius: 6px;
   color: var(--accent);
-  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0;
