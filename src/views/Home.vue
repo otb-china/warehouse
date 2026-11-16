@@ -508,7 +508,7 @@ onUnmounted(() => {
 .home-page {
   min-height: 100vh;
   padding: 0 20px calc(12px + env(safe-area-inset-bottom));
-  background-color: var(--page-bg);
+  background-color: color-mix(in srgb, var(--accent) 4%, var(--page-bg));
   color: var(--text-main);
 }
 
@@ -529,7 +529,7 @@ onUnmounted(() => {
   z-index: 20;
   margin: 0 -20px;
   padding-top: env(safe-area-inset-top);
-  background-color: color-mix(in srgb, var(--page-bg) 82%, transparent);
+  background-color: color-mix(in srgb, color-mix(in srgb, var(--accent) 4%, var(--page-bg)) 85%, transparent);
   -webkit-backdrop-filter: saturate(180%) blur(16px);
   backdrop-filter: saturate(180%) blur(16px);
   border-bottom: 1px solid color-mix(in srgb, var(--divider) 70%, transparent);
@@ -551,6 +551,7 @@ onUnmounted(() => {
 }
 
 .page-header h1 {
+  position: relative;
   margin: 0;
   color: var(--text-strong);
   font-size: 28px;
@@ -558,6 +559,17 @@ onUnmounted(() => {
   line-height: 1.15;
   letter-spacing: -0.02em;
   white-space: nowrap;
+}
+
+.page-header h1::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: 2px;
 }
 
 .item-count {
@@ -659,6 +671,7 @@ onUnmounted(() => {
   border-radius: var(--radius-md);
   color: #ffffff;
   background: var(--accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 24%, transparent);
   font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
@@ -670,7 +683,24 @@ onUnmounted(() => {
 }
 
 .create-button:active {
-  transform: scale(0.97);
+  transform: scale(0.95);
+}
+
+.create-button .el-icon {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.create-button:hover .el-icon,
+.create-button:active .el-icon {
+  transform: rotate(90deg);
+}
+
+.header-icon .el-icon {
+  transition: transform 0.5s var(--ease);
+}
+
+.header-icon:hover .el-icon {
+  transform: rotate(45deg);
 }
 
 .waterfall-list {
@@ -686,20 +716,31 @@ onUnmounted(() => {
   flex-direction: column;
   min-width: 0;
   padding: 16px 16px 14px;
-  border: 1px solid var(--divider);
-  border-radius: 16px;
-  background: var(--surface);
+  border: 0;
+  border-radius: 18px;
+  background:
+    radial-gradient(140px 90px at 100% 0%, color-mix(in srgb, var(--accent) 9%, transparent) 0%, transparent 70%),
+    var(--surface);
+  box-shadow:
+    0 1px 2px rgba(17, 24, 39, 0.04),
+    0 4px 10px rgba(17, 24, 39, 0.04),
+    0 12px 28px color-mix(in srgb, var(--accent) 10%, transparent);
   cursor: pointer;
+  overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .warehouse-card:hover {
-  border-color: var(--accent-border);
-  box-shadow: var(--shadow);
+  box-shadow:
+    0 1px 2px rgba(17, 24, 39, 0.05),
+    0 6px 14px rgba(17, 24, 39, 0.05),
+    0 16px 36px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .warehouse-card:active {
-  background: var(--surface-soft);
+  background:
+    radial-gradient(140px 90px at 100% 0%, color-mix(in srgb, var(--accent) 12%, transparent) 0%, transparent 70%),
+    var(--surface-soft);
 }
 
 .delete-btn {
@@ -721,7 +762,8 @@ onUnmounted(() => {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-.delete-btn:hover {
+.delete-btn:hover,
+.delete-btn:active {
   color: var(--danger-text);
   background: var(--danger-bg);
 }
@@ -749,15 +791,20 @@ onUnmounted(() => {
 }
 
 .quantity-unit {
-  margin-left: 3px;
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0;
+  vertical-align: 3px;
 }
 
 .updated-date {
-  margin-top: 8px;
+  margin-top: 10px;
   color: var(--text-subtle);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -1050,8 +1097,10 @@ onUnmounted(() => {
 
   .warehouse-card {
     padding: 14px 14px 12px;
-    border-radius: 14px;
+    border-radius: 16px;
   }
+
+
 
   .delete-btn {
     top: 9px;
