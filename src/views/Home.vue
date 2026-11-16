@@ -896,11 +896,12 @@ onUnmounted(() => {
   width: 100%;
   height: 44px;
   padding: 0 14px;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: 12px;
   outline: 0;
   color: var(--text-main);
   background: var(--field-bg);
+  caret-color: var(--accent);
   font-size: 16px;
   font-weight: 500;
   transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
@@ -912,9 +913,8 @@ onUnmounted(() => {
 }
 
 .simple-input:focus {
-  border-color: var(--accent-border);
-  background: var(--surface);
-  box-shadow: 0 0 0 4px var(--accent-ring);
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .unit-grid {
