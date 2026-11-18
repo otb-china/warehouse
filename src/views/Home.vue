@@ -62,18 +62,30 @@
           <input v-model.trim="itemForm.name" class="simple-input" placeholder="例如：矿泉水" />
         </label>
 
-        <label class="field-row">
+        <div class="field-row">
           <span>数量</span>
-          <input
-            v-model.number="itemForm.quantity"
-            class="simple-input"
-            inputmode="decimal"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="例如：12"
-          />
-        </label>
+          <div class="quantity-stepper">
+            <button
+              class="stepper-btn"
+              type="button"
+              aria-label="减少数量"
+              :disabled="normalizeQuantity(itemForm.quantity) <= 0"
+              @click="changeQuantity(-1)"
+            >
+              −
+            </button>
+            <input
+              v-model.number="itemForm.quantity"
+              class="simple-input stepper-input"
+              aria-label="数量"
+              inputmode="decimal"
+              type="number"
+              min="0"
+              step="0.01"
+            />
+            <button class="stepper-btn" type="button" aria-label="增加数量" @click="changeQuantity(1)">+</button>
+          </div>
+        </div>
 
         <div class="field-row">
           <span>单位</span>
@@ -261,6 +273,11 @@ function normalizeDeletedItems(value: unknown): DeletedWarehouseItem[] {
 function normalizeQuantity(value: unknown) {
   const quantity = Number(value);
   return Number.isFinite(quantity) && quantity >= 0 ? quantity : 0;
+}
+
+function changeQuantity(delta: number) {
+  const next = normalizeQuantity(itemForm.quantity) + delta;
+  itemForm.quantity = Math.max(0, Number(next.toFixed(2)));
 }
 
 function mergeItemsByName<T extends WarehouseItem>(localItems: T[], importedItems: T[]): T[] {
@@ -915,6 +932,50 @@ onUnmounted(() => {
 .simple-input:focus {
   background: color-mix(in srgb, var(--accent) 6%, var(--surface));
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.quantity-stepper {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 8px;
+}
+
+.stepper-btn {
+  height: 44px;
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  color: var(--accent);
+  background: var(--surface);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  touch-action: manipulation;
+}
+
+.stepper-btn:hover:not(:disabled) {
+  border-color: var(--accent-border);
+}
+
+.stepper-btn:active:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+.stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.stepper-input {
+  text-align: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.stepper-input::-webkit-outer-spin-button,
+.stepper-input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
 }
 
 .unit-grid {
