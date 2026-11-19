@@ -175,7 +175,8 @@ import { Plus, Search, Setting, Top } from "@element-plus/icons-vue";
 import ImportDataPopup from "@/components/ImportDataPopup.vue";
 import SettingsPopup from "@/components/SettingsPopup.vue";
 import { DEFAULT_THEME, isThemeKey, themeOptions } from "@/config/themes";
-import { LStorage } from "@/utils/localStorage.ts";
+import { storageKeys } from "@/utils/toolStorage";
+import { LStorage, reportSaveError } from "@/utils/localStorage.ts";
 import type { ThemeKey } from "@/config/themes";
 import type { DeletedWarehouseItem, WarehouseBackupData, WarehouseItem } from "@/types/tool";
 
@@ -200,9 +201,9 @@ const itemForm = reactive({ name: "", quantity: 1, unit: "个" as Unit });
 const importExportInfo = ref({ show: false });
 const importInfo = ref({ dataStr: "", fileName: "" });
 
-const itemStorage = LStorage.new("warehouseItems");
-const recycleStorage = LStorage.new("warehouseRecycleBin");
-const themeStorage = LStorage.new("warehouseTheme");
+const itemStorage = LStorage.new(storageKeys.items);
+const recycleStorage = LStorage.new(storageKeys.recycleBin);
+const themeStorage = LStorage.new(storageKeys.theme);
 
 const currentThemeOption = computed(() => {
   return themeOptions.find((theme) => theme.key === currentTheme.value) || themeOptions[0];
@@ -310,23 +311,23 @@ function isUnit(value: unknown): value is Unit {
 
 function saveItems() {
   if (items.value.length) {
-    itemStorage.setter(items.value);
+    void itemStorage.setter(items.value).catch(reportSaveError);
   } else {
-    itemStorage.remove();
+    void itemStorage.remove().catch(reportSaveError);
   }
 }
 
 function saveDeletedItems() {
   if (deletedItems.value.length) {
-    recycleStorage.setter(deletedItems.value);
+    void recycleStorage.setter(deletedItems.value).catch(reportSaveError);
   } else {
-    recycleStorage.remove();
+    void recycleStorage.remove().catch(reportSaveError);
   }
 }
 
 function setTheme(theme: ThemeKey) {
   currentTheme.value = theme;
-  themeStorage.setter(theme);
+  void themeStorage.setter(theme).catch(reportSaveError);
 }
 
 function openEditor(item?: WarehouseItem) {
@@ -443,7 +444,7 @@ function onImportFileLoaded(payload: { dataStr: string; fileName: string }) {
   showToast("备份文件已读取");
 }
 
-function importData() {
+async function importData() {
   try {
     const parsedData = JSON.parse(importInfo.value.dataStr) as WarehouseBackupData;
     if (!parsedData || typeof parsedData !== "object" || Array.isArray(parsedData)) {
@@ -460,17 +461,25 @@ function importData() {
     )) {
       throw new Error("Invalid deleted items");
     }
-    items.value = mergeItemsByName(items.value, importedItems);
-    deletedItems.value = mergeItemsByName(
+    const mergedItems = mergeItemsByName(items.value, importedItems);
+    const mergedDeletedItems = mergeItemsByName(
       deletedItems.value,
       purgeExpiredDeletedItems(importedDeletedItems),
     );
+    await Promise.all([
+      itemStorage.setter(mergedItems),
+      recycleStorage.setter(mergedDeletedItems),
+    ]);
+    items.value = mergedItems;
+    deletedItems.value = mergedDeletedItems;
     importExportInfo.value.show = false;
     importInfo.value.dataStr = "";
     importInfo.value.fileName = "";
     showToast("总数据合并成功");
-  } catch {
-    showToast("导入失败，请检查备份文件");
+  } catch (error) {
+    showToast(error instanceof DOMException && error.name === "QuotaExceededError"
+      ? "存储空间不足，导入的数据未保存，请保留备份文件"
+      : "导入失败，请检查备份文件");
   }
 }
 
@@ -479,11 +488,15 @@ function resetAllData() {
     title: "提示",
     message: "确认清除所有库房数据吗？",
     width: "250px",
-  }).then(() => {
+  }).then(async () => {
+    try {
+      await Promise.all([itemStorage.remove(), recycleStorage.remove()]);
+    } catch (error) {
+      reportSaveError(error);
+      return;
+    }
     items.value = [];
     deletedItems.value = [];
-    itemStorage.remove();
-    recycleStorage.remove();
     settingsPopup.value = false;
     showToast("数据已重置");
   }).catch(() => {});
